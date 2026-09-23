@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="description" content="PIVOT: Perception-aware Independent Viewpoint Online Optimization">
+  <meta property="og:title" content="PIVOT: Perception-aware Independent Viewpoint Online Optimization">
+  <meta property="og:description" content="Online field-of-view optimization for motion-decoupled robotic sensors.">
+  <meta property="og:url" content="https://droneslab.github.io/PIVOT/">
+  <meta property="og:image" content="https://raw.githubusercontent.com/droneslab/PIVOT/main/Fov%20demo.gif">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="keywords" content="active perception, viewpoint optimization, field of view, SO(3), robotics, visual localization, gimbal camera">
+  <title>PIVOT: Perception-aware Independent Viewpoint Online Optimization</title>
+  <link href="https://fonts.googleapis.com/css?family=Google+Sans|Noto+Sans|Castoro" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+  <link rel="stylesheet" href="static/css/index.css">
+</head>
+<body>
+<section class="hero project-hero">
+  <div class="hero-body">
+    <div class="container is-max-desktop">
+      <div class="columns is-centered">
+        <div class="column has-text-centered">
+          <h1 class="title is-1 publication-title"><span class="pivot-accent">PIVOT</span>: Perception-aware Independent Viewpoint Online Optimization</h1>
+          <div class="is-size-5 publication-authors">
+            <span class="author-block"><a href="https://droneslab.github.io/people/yuyang/" target="_blank">Yuyang Chen</a><sup>*</sup>,</span>
+            <span class="author-block"><a href="https://scholar.google.com/citations?user=NCCK7doAAAAJ&hl=en" target="_blank">Shekoufeh Sadeghi</a><sup>*</sup>,</span>
+            <span class="author-block"><a href="https://charuvahan.com/" target="_blank">Charuvahan Adhivarahan</a>,</span>
+            <span class="author-block">Elton Lemos,</span>
+            <span class="author-block">Chen Wang,</span>
+            <span class="author-block">Sanjeev J. Koppal,</span>
+            <span class="author-block"><a href="https://dkkarthik.github.io/" target="_blank">Karthik Dantu</a></span>
+          </div>
+          <div class="is-size-6 publication-authors affiliation-line">
+            <span>University at Buffalo &nbsp;&middot;&nbsp; University of Florida</span><br>
+            <span><sup>*</sup>Equal contribution</span>
+          </div>
+          <div class="publication-links">
+            <span class="link-block"><a href="https://arxiv.org/abs/2609.19510" target="_blank" class="external-link button is-normal is-rounded is-dark"><span class="icon"><i class="fas fa-file-pdf"></i></span><span>Paper</span></a></span>
+            <span class="link-block"><a href="https://github.com/droneslab/PIVOT" target="_blank" class="external-link button is-normal is-rounded is-dark"><span class="icon"><i class="fab fa-github"></i></span><span>Code</span></a></span>
+            <span class="link-block"><a href="https://youtu.be/IWPBh4lygTE" target="_blank" class="external-link button is-normal is-rounded is-dark"><span class="icon"><i class="fas fa-video"></i></span><span>Video</span></a></span>
+            <span class="link-block"><a href="https://github.com/cikufa/my_FIF-perception-aware-planning" target="_blank" class="external-link button is-normal is-rounded is-dark"><span class="icon"><i class="fab fa-github"></i></span><span>FIF Baseline</span></a></span>
+            <span class="link-block"><a href="#citation" class="external-link button is-normal is-rounded is-dark"><span class="icon"><i class="fas fa-quote-right"></i></span><span>BibTeX</span></a></span>
+          </div>
+          <p class="venue-note">Preprint &middot; Submitted to IEEE Robotics and Automation Letters (RA-L)</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="hero teaser">
+  <div class="container is-max-desktop">
+    <div class="hero-body">
+      <img class="hero-gif" src="Fov%20demo.gif" alt="PIVOT field-of-view optimization demo">
+      <h2 class="subtitle has-text-centered teaser-caption"><strong>Keep the robot path fixed. Move the sensor view.</strong> PIVOT continuously steers a motion-decoupled camera toward feature-rich directions while the platform follows its prescribed translation trajectory.</h2>
+    </div>
+  </div>
+</section>
+
+<section class="section hero is-light">
+  <div class="container is-max-desktop">
+    <div class="columns is-centered has-text-centered">
+      <div class="column is-four-fifths">
+        <h2 class="title is-3">What is PIVOT?</h2>
+        <div class="content has-text-justified project-copy">
+          <p>Most perception-aware planning assumes the sensor points where the robot body points. That assumption is unnecessary for gimbal cameras, pan-tilt units, and other motion-decoupled sensors whose sensing direction can be controlled independently.</p>
+          <p><strong>PIVOT</strong> treats sensor pointing as a lightweight online optimization problem. Given a fixed translation trajectory and a 3D map of task-relevant landmarks, it chooses the optical-axis direction that maximizes feature visibility while encouraging smooth changes between neighboring viewpoints.</p>
+          <p>Under a conical field-of-view model, the objective depends only on the optical axis, reducing the problem to two degrees of freedom on the viewing sphere <strong>S<sup>2</sup></strong>. PIVOT computes a differentiable visibility gradient and applies coordinate-free <strong>SO(3)</strong> exponential-map updates, avoiding explicit yaw/pitch parameterizations and exhaustive search over discretized viewing directions.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container is-max-desktop">
+    <h2 class="title is-3 has-text-centered">Core Idea</h2>
+    <div class="columns is-vcentered">
+      <div class="column is-6"><img class="paper-figure" src="static/images/fig1.svg" alt="PIVOT concept figure"></div>
+      <div class="column is-6 content project-copy">
+        <p>For each waypoint, PIVOT scores 3D landmarks with a smooth approximation of whether they lie inside the camera FoV. The gradient rotates the optical axis toward feature-rich structure. At trajectory level, a neighboring-view alignment term discourages abrupt sensor motion and promotes temporal view overlap.</p>
+        <div class="equation-card"><div><strong>Objective</strong></div><div class="equation">visibility + &lambda; &times; viewpoint smoothness</div><div class="equation-small">optimize sensor orientation; keep translation fixed</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section hero is-light">
+  <div class="container is-max-desktop">
+    <h2 class="title is-3 has-text-centered">Contributions</h2>
+    <div class="columns is-multiline">
+      <div class="column is-half"><div class="contribution-card"><span class="number">01</span><h3>Decoupled active FoV control</h3><p>Formulates viewpoint control for motion-decoupled sensors separately from robot translation planning.</p></div></div>
+      <div class="column is-half"><div class="contribution-card"><span class="number">02</span><h3>On-manifold optimization</h3><p>Derives a smooth feature-visibility objective and applies SO(3) exponential-map updates without explicit angular parameterization.</p></div></div>
+      <div class="column is-half"><div class="contribution-card"><span class="number">03</span><h3>Trajectory-level smoothness</h3><p>Extends single-pose optimization with a smoothness objective for continuous sensor pointing and temporal view overlap.</p></div></div>
+      <div class="column is-half"><div class="contribution-card"><span class="number">04</span><h3>Simulation + real robot validation</h3><p>Evaluates visibility, computational cost, visual localization, and physical gimbal control on a quadruped robot.</p></div></div>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container is-max-desktop">
+    <h2 class="title is-3 has-text-centered">Results</h2>
+    <div class="result-block">
+      <h3 class="title is-4">Near brute-force visibility at a fraction of the cost</h3>
+      <img class="paper-figure" src="static/images/montecarlo.svg" alt="Monte Carlo runtime and visibility results">
+      <div class="columns stat-row has-text-centered">
+        <div class="column"><div class="stat"><strong>98.1-99.6%</strong><span>brute-force visibility retained</span></div></div>
+        <div class="column"><div class="stat"><strong>76-85&times;</strong><span>speedup over 2&deg; brute force</span></div></div>
+        <div class="column"><div class="stat"><strong>1.9-15.2 ms</strong><span>mean per-pose PIVOT runtime</span></div></div>
+      </div>
+      <p class="figure-caption">Across maps containing roughly 2k-18k features, PIVOT stays close to exhaustive viewing-sphere search while scaling much more favorably with map density.</p>
+    </div>
+
+    <div class="result-block">
+      <h3 class="title is-4">Smooth sensor trajectories without changing the robot path</h3>
+      <img class="paper-figure" src="static/images/trajectory.svg" alt="Trajectory smoothness result">
+      <p class="figure-caption">Adding the trajectory smoothness term suppresses abrupt switches between competing feature clusters. At the highlighted waypoint pair, adjacent-view rotation drops from <strong>177.1&deg;</strong> to <strong>3.3&deg;</strong> while largely preserving the visibility profile.</p>
+    </div>
+
+    <div class="result-block">
+      <h3 class="title is-4">Improved visual localization in photorealistic simulation</h3>
+      <img class="paper-figure" src="static/images/localization.svg" alt="Visual localization error distributions">
+      <div class="table-container">
+        <table class="table is-bordered is-striped is-hoverable is-fullwidth result-table">
+          <thead><tr><th>Map</th><th>PIVOT registration failure</th><th>Next-best evaluated baseline</th><th>PIVOT total compute</th></tr></thead>
+          <tbody><tr><td>r1-a30</td><td><strong>29.6%</strong></td><td>41.0%</td><td><strong>0.045 s</strong></td></tr><tr><td>r2-a20</td><td><strong>2.4%</strong></td><td>4.4%</td><td><strong>0.061 s</strong></td></tr></tbody>
+        </table>
+      </div>
+      <p class="figure-caption">PIVOT achieves the lowest mean translation and rotation error among the evaluated methods, with total computation far below the Fisher-information planning baselines used in the study.</p>
+    </div>
+  </div>
+</section>
+
+<section class="section hero is-light">
+  <div class="container is-max-desktop">
+    <h2 class="title is-3 has-text-centered">Real-World Experiments</h2>
+    <div class="columns is-vcentered">
+      <div class="column is-7"><img class="paper-figure" src="static/images/realworld.svg" alt="Indoor Spot localization experiment"></div>
+      <div class="column is-5 content project-copy">
+        <h3 class="title is-4">99.0% registration success</h3>
+        <p>On a Boston Dynamics Spot equipped with a pan-tilt camera, PIVOT tracks optimized viewing directions along the same nominal Autowalk route used by a forward-facing baseline.</p>
+        <p><strong>PIVOT:</strong> 416 / 420 frames registered (99.0%)<br><strong>Forward-facing:</strong> 296 / 420 frames registered (70.5%)</p>
+        <p>That is a <strong>28.6 percentage-point increase</strong> in successful COLMAP registration on the evaluated indoor route.</p>
+      </div>
+    </div>
+    <div class="outdoor-wrap">
+      <img class="paper-figure" src="static/images/outdoor.svg" alt="Outdoor semantic viewpoint-control experiment">
+      <p class="figure-caption">Outdoor demonstration: task-relevant 3D regions corresponding to standing people are supplied to PIVOT, which physically tracks the resulting viewing-direction trajectory while the robot moves.</p>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container is-max-desktop">
+    <h2 class="title is-3 has-text-centered">Resources</h2>
+    <div class="columns">
+      <div class="column"><div class="resource-card"><i class="fas fa-file-pdf"></i><h3>Paper</h3><p>Read the current PIVOT preprint.</p><a href="https://arxiv.org/abs/2609.19510" target="_blank">arXiv:2609.19510</a></div></div>
+      <div class="column"><div class="resource-card"><i class="fab fa-github"></i><h3>Code</h3><p>Optimizer, experiments, and robot pipeline.</p><a href="https://github.com/droneslab/PIVOT" target="_blank">droneslab/PIVOT</a></div></div>
+      <div class="column"><div class="resource-card"><i class="fab fa-github"></i><h3>FIF Baseline</h3><p>Our fork used for the Fisher Information Field baseline experiments.</p><a href="https://github.com/cikufa/my_FIF-perception-aware-planning" target="_blank">Baseline repository</a></div></div>
+      <div class="column"><div class="resource-card"><i class="fas fa-video"></i><h3>Video</h3><p>Project overview and robot demonstration.</p><a href="https://youtu.be/IWPBh4lygTE" target="_blank">Watch on YouTube</a></div></div>
+    </div>
+  </div>
+</section>
+
+<section class="section hero is-light" id="citation">
+  <div class="container is-max-desktop content">
+    <h2 class="title">BibTeX</h2>
+    <pre><code>@misc{chen2026pivot,
+  title         = {PIVOT: Perception-aware Independent Viewpoint Online Optimization},
+  author        = {Yuyang Chen and Shekoufeh Sadeghi and Charuvahan Adhivarahan and Elton Lemos and Chen Wang and Sanjeev J. Koppal and Karthik Dantu},
+  year          = {2026},
+  eprint        = {2609.19510},
+  archivePrefix = {arXiv},
+  primaryClass  = {cs.RO}
+}</code></pre>
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="container"><div class="content has-text-centered"><p>Page structure inspired by the <a href="https://github.com/droneslab/LGTN" target="_blank">LGTN / Lightning project page</a> and the Academic Project Page Template.</p></div></div>
+</footer>
+</body>
+</html>
