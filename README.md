@@ -8,46 +8,44 @@
 \*Equal contribution  
 *Preprint. Submitted to IEEE Robotics and Automation Letters (RA-L).*
 
-PIVOT is a lightweight online method for controlling the viewing direction of **motion-decoupled sensors** such as gimbal-mounted cameras and steerable depth sensors. Given a fixed translation trajectory and a 3D landmark map, PIVOT optimizes only the sensor orientation so that task-relevant features remain inside the limited field of view.
+PIVOT is a lightweight online method for controlling the viewing direction of **motion-decoupled sensors** such as gimbal-mounted cameras and steerable depth sensors. Given a fixed robot translation trajectory and a 3D landmark map, PIVOT optimizes only the sensor orientation so that task-relevant features remain inside the limited field of view (FoV).
 
-Under a conical FoV model, visibility depends only on the optical axis, giving a two-DoF optimization on the viewing sphere **S²**. PIVOT uses a differentiable visibility objective and coordinate-free **SO(3) exponential-map updates** to avoid explicit angular parameterizations and exhaustive viewing-sphere search. A trajectory-level smoothness term encourages continuous sensor pointing and temporal view overlap.
+Under a conical FoV model, visibility depends only on the optical axis, giving a two-degree-of-freedom optimization on the viewing sphere **S²**. PIVOT uses a smooth feature-visibility objective and coordinate-free **SO(3) exponential-map updates**, avoiding explicit yaw/pitch parameterizations and exhaustive viewing-sphere search. A trajectory-level smoothness term encourages continuous sensor pointing and temporal view overlap.
 
 <p align="center">
   <img src="Fov%20demo.gif" alt="PIVOT FoV optimization demo" width="900"/>
 </p>
 
-## Highlights
-
-- **Online viewpoint optimization:** sensor pointing is optimized independently of robot translation.
-- **On-manifold updates:** continuous SO(3) exponential-map updates avoid yaw/pitch singularities and discrete candidate-view search.
-- **Smooth trajectories:** a neighboring-view objective suppresses abrupt camera rotations while preserving feature visibility.
-- **Fast visibility optimization:** across ~2k-18k landmarks, PIVOT retains **98.1-99.6%** of brute-force visibility with a **76-85× speedup**.
-- **Photorealistic localization:** PIVOT obtains the lowest localization errors and registration-failure rates among the evaluated methods while using far less total computation.
-- **Real robot validation:** on the evaluated Spot hallway route, PIVOT registers **416/420 frames (99.0%)**, versus **296/420 (70.5%)** with a forward-facing camera.
-
-## Method
+## Overview
 
 <p align="center">
-  <img src="static/images/fig1.svg" alt="PIVOT overview" width="700"/>
+  <img src="static/images/overview.png" alt="PIVOT overview" width="700"/>
 </p>
 
-At each trajectory waypoint, PIVOT maximizes a smooth feature-visibility objective. For trajectory optimization, the objective combines feature visibility with alignment between neighboring optical axes:
+PIVOT takes a **fixed translation path + 3D landmark map** as input and returns feature-facing sensor directions while leaving robot positions unchanged. At each waypoint it maximizes a differentiable feature-visibility objective; at trajectory level it additionally encourages neighboring optical axes to align:
 
-> **maximize:** visibility + λ × viewpoint smoothness  
-> **optimize:** sensor orientation only  
-> **fixed:** robot translation trajectory
+> **Objective:** feature visibility + λ × viewpoint smoothness  
+> **Optimize:** sensor orientation  
+> **Keep fixed:** robot translation trajectory
 
-The optimizer operates directly on the current landmark set and does not require a separately precomputed perception-quality field.
+## Contributions
 
-## Main Results
+- **Decoupled active FoV control.** Formulates sensor pointing for motion-decoupled cameras as an online optimization problem on S², separate from translation planning.
+- **Continuous on-manifold optimization.** Derives a smooth feature-visibility objective and uses SO(3) exponential-map updates without explicit angular parameterization or exhaustive candidate-view search.
+- **Trajectory-level smoothness.** Extends single-pose optimization with a smoothness objective that encourages continuous pointing and temporal view overlap.
+- **Simulation and real-world validation.** Evaluates visibility, computation time, downstream visual localization, and physical viewpoint control on a Boston Dynamics Spot quadruped.
 
-### Visibility vs. brute force
+## Results
+
+### Visibility optimization vs. brute force
+
+The Monte Carlo evaluation uses nine truncated Gaussian clusters of 2000 features each, 400 evaluation poses, ten deterministic nested feature sets from approximately 2k to 18k features, a 30° full FoV, and a 2° brute-force viewing-sphere reference.
 
 <p align="center">
-  <img src="static/images/montecarlo.svg" alt="Monte Carlo visibility and runtime results" width="850"/>
+  <img src="static/images/monte_scaling.png" alt="PIVOT versus brute-force runtime and visibility scaling" width="850"/>
 </p>
 
-| Metric | PIVOT result |
+| Metric | PIVOT |
 |---|---:|
 | Retained brute-force visibility | **98.1-99.6%** |
 | Speedup over 2° brute force | **76-85×** |
@@ -57,47 +55,67 @@ The optimizer operates directly on the current landmark set and does not require
 ### Trajectory smoothness
 
 <p align="center">
-  <img src="static/images/trajectory.svg" alt="Trajectory smoothness comparison" width="850"/>
+  <img src="static/images/trajectory.png" alt="Trajectory smoothness comparison" width="850"/>
 </p>
 
-With the combined visibility + smoothness objective, the highlighted adjacent-view change is reduced from **177.1° to 3.3°** while largely preserving the visibility profile.
+Visibility-only optimization can abruptly switch between competing feature clusters. With the combined visibility + smoothness objective, the highlighted adjacent-view change is reduced from **177.1° to 3.3°** while largely preserving the visibility profile.
 
-### Visual localization
+### Visual localization in photorealistic simulation
+
+The visual-localization evaluation uses the same NVIDIA Isaac / Unreal Engine simulation setting as the Fisher Information Field baseline. Two SfM landmark maps are used: **r1-a30** (1445 SIFT features, 30° FoV half-angle) and **r2-a20** (3470 SIFT features, 20° FoV half-angle).
 
 <p align="center">
-  <img src="static/images/localization.svg" alt="Localization error distributions" width="850"/>
+  <img src="static/images/localization.png" alt="Localization pose-error distributions" width="850"/>
 </p>
 
-| Map | PIVOT registration failure | Next-best evaluated baseline | PIVOT total compute |
+| Map | PIVOT registration failure | Next-best evaluated baseline | PIVOT total computation |
 |---|---:|---:|---:|
 | r1-a30 | **29.6%** | 41.0% | **0.045 s** |
 | r2-a20 | **2.4%** | 4.4% | **0.061 s** |
 
+PIVOT is compared against the six perception-aware baselines from Fisher Information Field — **PC-D, PC-T, GP-D, GP-T, Quad-D, and Quad-T** — together with a no-information baseline. The paper reports the lowest mean translation and rotation errors for PIVOT on both maps and the lowest registration-failure rates among the evaluated methods.
+
 ### Real-world Spot experiment
 
 <p align="center">
-  <img src="static/images/realworld.svg" alt="Real-world Spot localization experiment" width="850"/>
+  <img src="static/images/realworld.jpg" alt="Real-world Spot localization experiment" width="900"/>
 </p>
 
-PIVOT is evaluated on a Boston Dynamics Spot with a pan-tilt gimbal and Intel RealSense D455. On the indoor Autowalk experiment, PIVOT achieves **99.0% COLMAP registration success (416/420)** compared with **70.5% (296/420)** for the forward-facing condition.
+The physical platform consists of a **Boston Dynamics Spot**, a ROS-based **iQuotient Robotics pan-tilt gimbal**, an **Intel RealSense D455**, and a **Velodyne VLP-16** with FAST-LIO localization. Spot follows the same nominal S-shaped Autowalk route under two sensing conditions.
+
+| Condition | Successful registrations | Success rate |
+|---|---:|---:|
+| **PIVOT** | **416 / 420** | **99.0%** |
+| Forward-facing | 296 / 420 | 70.5% |
+
+This corresponds to a **28.6 percentage-point increase** in COLMAP registration success for the evaluated indoor route.
+
+The outdoor demonstration additionally uses standing people as task-relevant 3D regions of interest and tracks the resulting PIVOT viewing-direction trajectory while Spot moves through the environment.
 
 ## Baseline Code
 
-The Fisher Information Field (FIF) comparison code used for the baseline experiments is maintained separately so that the upstream baseline lineage remains clear:
+The modified Fisher Information Field code used for the baseline experiments is maintained separately so the upstream baseline lineage remains clear:
 
 - **FIF baseline fork:** https://github.com/cikufa/my_FIF-perception-aware-planning
 
-The paper compares PIVOT with PC-D, PC-T, GP-D, GP-T, Quad-D, and Quad-T in the photorealistic visual-localization evaluation.
-
 ## Repository Layout
 
-The repository currently contains the core C++ optimizer, Monte Carlo evaluation scripts, trajectory-level optimization, visual-localization evaluation, mapping / registration utilities, and robot-side integration code. The main implementation is under `Manifold_cpp/`; experiment automation is under `scripts/`.
+The repository contains the C++ on-manifold optimizer, trajectory optimization, Monte Carlo evaluation scripts, visual-localization evaluation, mapping/registration utilities, and robot-side integration code.
+
+Key locations currently include:
+
+```text
+Manifold_cpp/        Core C++ optimizer and trajectory optimization
+scripts/             Monte Carlo generation/evaluation/plotting utilities
+Map/                 Map-related inputs and utilities
+Detection/           Detection-related components
+catkin_ws/           ROS integration
+unrealcv_bridge/     UnrealCV bridge code
+```
 
 ## Reproducing the Experiments
 
-A cleaned, end-to-end reproduction guide is being prepared. The current repository already contains experiment scripts and developer notes, including `IMPLEMENTATION_SUMMARY.md` and `ESDF_INTEGRATION_GUIDE.md`.
-
-To make this section fully reproducible, we still need to document the exact environment and artifact locations listed in **Implementation details needed** below.
+The paper timing experiments were run on an **Intel Core i9-14900K CPU**, using **single-threaded C++14** implementations under **Ubuntu 22.04**. The public repository already contains the experiment scripts and implementation notes, but the dependency versions and released experiment assets still need to be consolidated into one reproducible setup.
 
 ### Clone
 
@@ -106,7 +124,9 @@ git clone https://github.com/droneslab/PIVOT.git
 cd PIVOT
 ```
 
-### Build the core optimizer
+### Core optimizer
+
+The core C++ implementation lives under `Manifold_cpp/` and uses CMake. The repository currently detects Eigen and optionally voxblox.
 
 ```bash
 cd Manifold_cpp
@@ -115,50 +135,29 @@ cmake ..
 make -j
 ```
 
-> **TODO:** dependency versions and the exact recommended build configuration will be added once confirmed.
+> **TODO:** add the exact compiler/CMake/dependency versions used for the release and remove any machine-specific paths from the build configuration.
 
 ### Monte Carlo evaluation
 
 The repository provides:
 
-- `scripts/generate_cluster_map.py` for clustered synthetic maps and nested feature subsets.
-- `scripts/run_monte_carlo_experiment.py` for PIVOT / brute-force evaluation.
-- `scripts/plot_monte_carlo_results.py` for the runtime, visibility, and spatial comparison plots.
+- `scripts/generate_cluster_map.py` — generate clustered synthetic maps and nested feature subsets.
+- `scripts/run_monte_carlo_experiment.py` — run PIVOT and brute-force evaluations.
+- `scripts/plot_monte_carlo_results.py` — generate runtime, visibility, and spatial-comparison plots.
 
-Example:
+> **TODO:** add the exact released command/config matching the paper's nine-cluster, 400-pose, 2k-18k-feature experiment.
 
-```bash
-python scripts/generate_cluster_map.py \
-  --name clusters_demo \
-  --clusters 9 \
-  --features-per-cluster 2000 \
-  --bounds -400 400 -400 400 0 20 \
-  --pose-resolution 20,20,1 \
-  --seed 42 \
-  --subsample-levels 10
+### Photorealistic localization evaluation
 
-python scripts/run_monte_carlo_experiment.py \
-  --map-name clusters_demo \
-  --all-levels \
-  --build
-```
+The paper uses an NVIDIA Isaac / Unreal Engine simulator, COLMAP-based sparse SfM maps, and a prebuilt occlusion depth map. PIVOT optimizes sensor orientation along a collision-free translation path and registers rendered query images against the same reference maps used by the baselines.
 
-> **TODO:** confirm the exact command used for the paper's 9-cluster / 2k-18k evaluation so this example matches the released result exactly.
+> **TODO:** document simulator versions/assets, COLMAP setup, the released `r1-a30` and `r2-a20` maps, and the exact baseline/PIVOT evaluation commands.
 
-## Implementation details needed
+### Real-world pipeline
 
-Please provide/confirm the following so we can finish the public reproduction instructions without guessing:
+The paper's physical system uses Spot + pan-tilt gimbal + RealSense D455 + VLP-16/FAST-LIO. The repository contains mapping, planning, localization, registration, and ROS-side utilities.
 
-1. **Supported OS and compiler:** exact Ubuntu version, GCC/CMake versions used for the released code.
-2. **C++ dependencies:** required versions/install commands for Eigen, voxblox / minkindr, protobuf, and any other non-system dependencies.
-3. **Python environment:** Python version and packages required by the map-generation, plotting, COLMAP, and evaluation scripts (ideally `requirements.txt` or conda YAML).
-4. **COLMAP stack:** COLMAP version plus the exact `colmap_utils` commit/version and any local patches.
-5. **Simulation stack:** exact NVIDIA Isaac / Unreal Engine / UnrealCV versions and where the warehouse scene/assets can be obtained.
-6. **FIF baseline:** exact commit and commands/configs used in [`cikufa/my_FIF-perception-aware-planning`](https://github.com/cikufa/my_FIF-perception-aware-planning) for PC-D, PC-T, GP-D, GP-T, Quad-D, and Quad-T.
-7. **Paper experiment configs:** released config/command for Monte Carlo, trajectory smoothness, `r1-a30`, and `r2-a20` experiments.
-8. **Real robot stack:** ROS version, Spot software dependencies, FAST-LIO repo/commit, gimbal driver/controller repo, and topic names expected by the scripts.
-9. **Maps / datasets / bags:** which artifacts can be released publicly and their download locations; otherwise we will mark them as coming soon.
-10. **License:** desired code license for this repository.
+> **TODO:** document the exact ROS/FAST-LIO/gimbal versions, launch files, topic names, calibration assumptions, and the released mapping/Autowalk data needed to reproduce the reported 420-frame comparison.
 
 ## Citation
 
